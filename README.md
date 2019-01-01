@@ -3,6 +3,10 @@ Compose a scaffolding from awesome frameworks, libs
 ## Usage
 
 ```
+npm install -g devpose-cli
+```
+
+```
 dp init <starter-name> to <app-name>
 ```
 
