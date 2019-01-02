@@ -1,7 +1,7 @@
 {
   "name": "devpose-cli",
   "version": "0.0.1",
-  "description": "CLI to init a project stater",
+  "description": "CLI to init a project starter",
   "main": "index.js",
   "bin": {
     "dp": "./index.js"
@@ -15,6 +15,11 @@
     "type": "git",
     "url": "github.com/devpose/devpose-cli"
   },
+  "keywords": [
+    "starter",
+    "project starter",
+    "scaffolding"
+  ],
   "dependencies": {
     "chalk": "^2.4.1",
     "commander": "^2.19.0",

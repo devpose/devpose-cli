@@ -1,0 +1,18 @@
+version: 0.0.1
+commands:
+  - git clone --progress git@github.com:devpose/dp-node.git server
+  - cd server
+  - rm -rf .git
+  - devpose:
+      command: CreateFlatFile
+      name: Dockerfile
+      content: server-dockerfile
+
+server-dockerfile:
+  - FROM node:8
+  - WORKDIR /usr/app
+  - COPY package*.json ./
+  - RUN npm install
+  - COPY . .
+  - EXPOSE 8080
+  - CMD [ "npm", "start" ]

@@ -3,11 +3,11 @@ let process = require('process')
 let program = require('commander')
 const rp = require('request-promise')
 const chalk = require('chalk')
-const spawnSyncPromise = require('./lib/spawnSyncPromise')
 
 const yaml = require('js-yaml')
 const fs = require('fs')
 
+const execCommands = require('./src/execCommands')
 const logError = function(errMsg) {
   console.log(chalk.red(`Error: ${errMsg}`))
 }
@@ -15,7 +15,9 @@ const logError = function(errMsg) {
 program
   .command('init <pose> [appOptions...]')
   .description('init <starter> to <app name>')
-  .action(async function(pose, appOptions) {
+  .option('-p, --path [localPath]', 'Use local path to init project starter')
+  .option('-l, --link [urlLink]', 'Use url link to init project starter')
+  .action(async function(pose, appOptions, cmdOptions) {
     let [to, appName] = appOptions.length === 2 ? appOptions : []
 
     if (to !== 'to') {
@@ -38,13 +40,23 @@ program
     }
 
     let starterYamlFile
-    try {
-      starterYamlFile = await rp(
-        `https://raw.githubusercontent.com/devpose/posehub/master/ymls/${pose}.yml`
+
+    if (cmdOptions.path) {
+      starterYamlFile = fs.readFileSync(
+        `${process.cwd()}/${cmdOptions.path}`,
+        'utf8'
       )
-    } catch (e) {
-      logError(`Starter config "${pose}" not existed.`)
-      return
+    } else {
+      const yamlUrl = cmdOptions.link
+        ? cmdOptions.link
+        : `https://raw.githubusercontent.com/devpose/posehub/master/ymls/${pose}.yml`
+
+      try {
+        starterYamlFile = await rp(yamlUrl)
+      } catch (e) {
+        logError(`Starter config "${pose}" not existed.`)
+        return
+      }
     }
 
     fs.mkdirSync(appName)
@@ -52,49 +64,7 @@ program
 
     try {
       const starterConfig = yaml.safeLoad(starterYamlFile)
-
-      const commands = starterConfig.commands
-      for (let i = 0, len = commands.length; i < len; i++) {
-        const cmdItem = commands[i]
-
-        if (typeof cmdItem === 'object' && cmdItem.devpose) {
-          switch (cmdItem.devpose.command) {
-            case 'CreateFlatFile':
-              const fileContentKey = cmdItem.devpose.content
-              const fileContent = starterConfig[fileContentKey]
-              fs.writeFile(
-                `${process.cwd()}/${cmdItem.devpose.name}`,
-                fileContent.join('\n\n'),
-                err => {
-                  if (err) throw err
-                }
-              )
-              break
-            case 'CreateYamlFile':
-              const yamlKey = cmdItem.devpose.content
-              const yamlContent = starterConfig[yamlKey]
-              const yamlStr = yaml.safeDump(yamlContent)
-              fs.writeFile(
-                `${process.cwd()}/${cmdItem.devpose.name}`,
-                yamlStr,
-                err => {
-                  if (err) throw err
-                }
-              )
-              break
-          }
-        } else {
-          const cmds = cmdItem.split(' ')
-          const cmd = cmds[0]
-          switch (cmd) {
-            case 'cd':
-              process.chdir(cmds[1])
-              break
-            default:
-              await spawnSyncPromise(cmdItem)
-          }
-        }
-      }
+      execCommands(starterConfig)
     } catch (err) {
       throw err
     }
